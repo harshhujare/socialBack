@@ -1,0 +1,1 @@
+"use strict";Object.defineProperty(exports, "__esModule", {value: true});var _chunkLTNXLTPScjs = require('./chunk-LTNXLTPS.cjs');var r={...Object.fromEntries(Object.entries(_chunkLTNXLTPScjs.a).filter(([e])=>e!=="extra")),..._chunkLTNXLTPScjs.a.extra.nginx},i= exports.default =r;exports.default = i; exports.status = r;

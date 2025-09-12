@@ -1,0 +1,106 @@
+{
+  "name": "http-status",
+  "version": "2.1.0",
+  "description": "Interact with HTTP status code",
+  "homepage": "https://github.com/adaltas/node-http-status",
+  "author": "David Worms <david@adaltas.com> (https://www.adaltas.com)",
+  "keywords": [
+    "http",
+    "connect",
+    "frontend",
+    "status",
+    "express"
+  ],
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adaltas/node-http-status"
+  },
+  "bugs": {
+    "email": "open@adaltas.com",
+    "url": "http://github.com/adaltas/node-http-status/issues"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "@eslint/core": "^0.7.0",
+    "@eslint/js": "^9.13.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/mocha": "^10.0.9",
+    "@types/node": "^22.7.7",
+    "@types/should": "^13.0.0",
+    "commitlint": "^19.5.0",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-mocha": "^10.5.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "mocha": "10.7.3",
+    "prettier": "^3.3.3",
+    "should": "13.2.3",
+    "standard-version": "^9.5.0",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.10.0"
+  },
+  "contributors": [
+    {
+      "name": "David Worms",
+      "email": "david@adaltas.com"
+    },
+    {
+      "name": "Daniel Gasienica",
+      "email": "daniel@gasienica.ch"
+    }
+  ],
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs"
+    },
+    "./*": {
+      "import": "./dist/*.js",
+      "types": "./dist/*.d.ts",
+      "require": "./dist/*.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "lint-staged": {
+    "*.js": "npm run lint:fix",
+    "*.md": "prettier -w"
+  },
+  "mocha": {
+    "throw-deprecation": false,
+    "loader": "ts-node/esm",
+    "require": [
+      "should"
+    ],
+    "inline-diffs": true,
+    "timeout": 40000,
+    "reporter": "spec",
+    "recursive": true
+  },
+  "engines": {
+    "node": ">= 0.4.0"
+  },
+  "scripts": {
+    "build": "tsup-node",
+    "lint:check": "eslint",
+    "lint:fix": "eslint --fix",
+    "lint:staged": "npx lint-staged",
+    "prepare": "husky install",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:patch": "standard-version --release-as patch",
+    "release:major": "standard-version --release-as major",
+    "postrelease": "git push --follow-tags origin master",
+    "test": "mocha \"test/**/*.{js,ts}\""
+  },
+  "type": "module"
+}
