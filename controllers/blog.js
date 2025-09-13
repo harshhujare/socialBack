@@ -2,7 +2,7 @@ const blog = require("../models/bolg");
 const fs = require("fs");
 const path = require("path");
 
-function toWebPath(p) {
+function toWebPath(p)   {
   if (!p || typeof p !== 'string') return p;
   const norm = p.replace(/\\/g, '/');
   if (norm.startsWith('/public/')) return norm;
