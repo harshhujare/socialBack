@@ -1,7 +1,7 @@
 const blog = require("../models/bolg");
 const fs = require("fs");
 const path = require("path");
-
+const { getFileUrl } = require("../config/multerconfig");
 function toWebPath(p)   {
   if (!p || typeof p !== 'string') return p;
   const norm = p.replace(/\\/g, '/');
@@ -16,12 +16,12 @@ const handelblog = async (req, res) => {
   const { userid, description, title, createdby, summary } = req.body;
 
   const uploadedFsPath = req.file?.path;
-  const defaultWebPath = '/public/uploads/profile/image.png';
-  const webPath = uploadedFsPath
-    ? '/' + require('path')
-        .relative(process.cwd(), uploadedFsPath)
-        .replace(/\\/g, '/')
-    : defaultWebPath;
+  console.log("Uploaded file path:", uploadedFsPath);
+ 
+  const webPath =  req.file 
+      ? getFileUrl(req, req.file, req.file.fieldname)
+      : `${req.protocol}://${req.get("host")}/public/uploads/profile/image.png`;
+      console.log("Web accessible path:", webPath);
   try {
     await blog.create({
       userid: userid,
@@ -64,15 +64,11 @@ const getblog = async (req, res) => {
     ]);
 
     // normalize image paths
-    const normalized = items.map((b) => {
-      if (!b) return b;
-      b.titalimg = toWebPath(b.titalimg);
-      return b;
-    });
-
+ 
+// console.log("these are itsms",items)
     return res.json({
       success: true,
-      blogs: normalized,
+      blogs: items,
       pagination: {
         total,
         page: pageNum,
@@ -95,7 +91,7 @@ const getblogbyid = async (req, res) => {
         .status(400)
         .json({ message: "no blog found", success: false });
     }
-    Blog.titalimg = toWebPath(Blog.titalimg);
+   
     return res.json({ success: true, blog: Blog });
   } catch (err) {
     console.error('Get blog by id failed:', err);
@@ -118,11 +114,8 @@ const getBlogsByUserId = async (req, res) => {
         success: false,
       });
     }
-    const normalized = userBlogs.map(b => ({
-      ...b.toObject(),
-      titalimg: toWebPath(b.titalimg),
-    }));
-    return res.json({ success: true, blogs: normalized });
+  
+    return res.json({ success: true, blogs: userBlogs });
   } catch (err) {
     console.error('Get user blogs failed:', err);
     res.status(500).json({

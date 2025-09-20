@@ -64,13 +64,13 @@ cloudinary.config({
 
 // ---- Local storage (for development) ----
 const localStorage = multer.diskStorage({
+
   destination: function (req, file, cb) {
-    const baseUploadsDir = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR)
-      : path.join(process.cwd(), "public", "uploads");
+const baseUploadsDir = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR): path.join(process.cwd(), "public", "uploads");
 
     let dest = baseUploadsDir;
     if (file.fieldname === "image") {
-      dest = path.join(baseUploadsDir, "profile");
+      dest = path.join( baseUploadsDir, "profile");
     }
     if (file.fieldname === "blogimg") {
       dest = path.join(baseUploadsDir, "blogimg");
@@ -105,7 +105,7 @@ const cloudStorage = new CloudinaryStorage({
 
 // ---- Choose storage based on NODE_ENV ----
 const storage = process.env.NODE_ENV === "production" ? cloudStorage : localStorage;
-
+  // console.log( process.env.NODE_ENV,"storage is",storage);
 // ---- File filter (images only) ----
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image/")) {
@@ -119,7 +119,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 2 * 1024 * 1024 }, // 5MB
 });
 
 /**
@@ -138,10 +138,9 @@ const getFileUrl = (req, file, type = 'blogimg') => {
   } else {
     // In development, construct the URL using request properties
     const folder = type === 'image' ? 'profile' : 'blogimg';
-    fileUrl = `${req.protocol}://${req.get("host")}/uploads/${folder}/${file.filename}`;
+    fileUrl = `${req.protocol}://${req.get("host")}/public/uploads/${folder}/${file.filename}`;
   }
-  
-  return fileUrl;
+  return fileUrl.replace(/\\/g, "/");
 };
 
 module.exports = { upload, getFileUrl };

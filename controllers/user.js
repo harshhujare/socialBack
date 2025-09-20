@@ -1,6 +1,7 @@
 const user = require("../models/user");
 const Follow = require("../models/followers");
-
+const { getFileUrl } = require("../config/multerconfig");
+const cloudinary = require("cloudinary").v2;
 const bcrypt = require("bcrypt");
 const { CreateTokenForUser, validateToken } = require("../services/auth");
 const multer = require("multer");
@@ -133,11 +134,11 @@ const handelCheck = async (req, res) => {
     if (!fresh) {
       return res.json({ loggedIn: false });
     }
-    const normalized = {
-      ...fresh.toObject(),
-      profileImgUrl: toWebPath(fresh.profileImgUrl),
-    };
-    return res.json({ loggedIn: true, user: normalized });
+    // const normalized = {
+    //   ...fresh.toObject(),
+    //   profileImgUrl: toWebPath(fresh.profileImgUrl),
+    // };
+    return res.json({ loggedIn: true, user: fresh });
   } catch (error) {
     return res.json({ loggedIn: false });
   }
@@ -182,7 +183,7 @@ const handelgetuser = async (req, res) => {
         .json({ sucess: false, error: "faild to get user" });
     }
     // normalize image path for client
-    result.profileImgUrl = toWebPath(result.profileImgUrl);
+   
     // Check if the user is following the requested user
    
     const followDoc = await Follow.exists({
@@ -238,6 +239,7 @@ const handellistusers = async (req, res) => {
   }
 };
 const handelupload = async (req, res) => {
+
   const id = req.params.userid;
   const uploadedFsPath = req.file?.path;
 
@@ -250,23 +252,38 @@ const handelupload = async (req, res) => {
     if (!nuser) return res.status(404).json({ error: "User not found" });
 
     // Build web path (/public/...) for client consumption
-    const webPath =
-      "/" + path.relative(process.cwd(), uploadedFsPath).replace(/\\/g, "/");
+    const webPath =  getFileUrl(req, req.file, req.file.fieldname);
 
     // Delete old image if present and not default
     if (
-      nuser.profileImgUrl &&
-      nuser.profileImgUrl !== "/public/uploads/profile/image.png"
-    ) {
-      const oldWebPath = nuser.profileImgUrl;
-      const oldAbsPath = path.isAbsolute(oldWebPath)
-        ? oldWebPath
-        : path.join(process.cwd(), oldWebPath.replace(/^\//, ""));
-      fs.unlink(oldAbsPath, (err) => {
-        if (err) console.error("error deleting old photo", err.message || err);
+  nuser.profileImgUrl &&
+  nuser.profileImgUrl !== "/public/uploads/profile/image.png"
+) {
+  const oldWebPath = nuser.profileImgUrl;
+
+  let oldAbsPath;
+   if (process.env.NODE_ENV === "production") {
+      // Extract public_id from Cloudinary URL
+      const urlParts = oldWebPath.split("/");
+      const filename = urlParts[urlParts.length - 1]; // e.g. abc123.png
+      const folder = urlParts[urlParts.length - 2];   // e.g. profile
+      const publicId = `${folder}/${filename.split(".")[0]}`;
+
+      const result = await cloudinary.uploader.destroy(publicId);
+      console.log("Cloudinary delete result:", result);
+    } else {
+      // Local delete
+      const urlPath = new URL(oldWebPath).pathname; // /public/uploads/profile/abc123.png
+      const absPath = path.join(process.cwd(), urlPath.replace(/^\//, ""));
+
+      fs.unlink(absPath, (err) => {
+        if (err) console.error("Local delete error:", err.message);
+        else console.log("Local image deleted:", absPath);
       });
     }
-
+ 
+}
+console.log(webPath,"webpath is");
     nuser.profileImgUrl = webPath;
     await nuser.save();
     res.status(200).json({ success: true, nuser });
