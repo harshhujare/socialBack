@@ -2,7 +2,9 @@ import { validateToken } from "../services/auth.js";
 import Permission from "../models/permission.js";
 import cookie from 'cookie-parser';
 function AuthMiddleWare(req, res, next) {
+  
   const token = req.cookies?.token;
+  console.log(token ,"token from cookie");
   if (!token) return res.status(401).json({ message: "Access_Denied", success: false });
   try {
     const users = validateToken(token);
