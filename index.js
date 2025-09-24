@@ -112,7 +112,7 @@ app.use('/public', express.static('public'));
 
 connectDb(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smpleBlog');
 
-const allowedOrigins = (process.env.CLIENT_URL ? process.env.CLIENT_URL : 'http://localhost:5173')
+const allowedOrigins = (process.env.CLIENT_URL ? process.env.CLIENT_URL : 'https://blog-frontend-six-eta.vercel.app')
   .split(',')
   .map(s => s.trim()) 
   .filter(Boolean);
