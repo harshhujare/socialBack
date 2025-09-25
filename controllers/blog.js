@@ -1,6 +1,10 @@
 const blog = require("../models/bolg");
 const fs = require("fs");
 const path = require("path");
+const { deleteImage } = require("../services/delete.fun");
+
+
+
 const { getFileUrl } = require("../config/multerconfig");
 function toWebPath(p)   {
   if (!p || typeof p !== 'string') return p;
@@ -143,10 +147,7 @@ const deleteBlog = async (req, res) => {
 
     if (imagePath && typeof imagePath === "string") {
       try {
-        const absolutePath = imagePath.startsWith('/public/')
-          ? path.join(process.cwd(), imagePath.replace(/^\//, ''))
-          : (path.isAbsolute(imagePath) ? imagePath : path.join(process.cwd(), imagePath));
-        await fs.promises.unlink(absolutePath);
+        await deleteImage(imagePath);
       } catch (unlinkErr) {
         // Log but do not fail the whole request
         console.error("Failed to delete blog image:", unlinkErr?.message || unlinkErr);
