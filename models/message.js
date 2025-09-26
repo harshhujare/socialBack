@@ -9,5 +9,5 @@ const messageschema = new Schema(
   },
   { timestamps: true }
 );
-const message = model("message", messageschema);
-module.exports = message;
+const Message = model("message", messageschema);
+module.exports = Message;

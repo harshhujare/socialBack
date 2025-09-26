@@ -8,6 +8,7 @@ const multerconfig=require("./config/multerconfig");
 const userRoute=require("./routes/user");
 const authRoute=require("./routes/checkcookieRoutes");
 const imgroute=require("./routes/image");
+const messageroute =require("./routes/messages.route");
 const blogroute=require("./routes/blog");
 const permissionRoute=require("./routes/permission");
 const FollowRoute=require("./routes/Follow");
@@ -16,7 +17,10 @@ const {IoMiddleware} = require('./middlewares/auth')
 const { create, createSearchIndex } = require('./models/followers');
 const  {createServer } = require('node:http');
 const { connectsoket } = require("./controllers/soketmaneger");
+
+
 const Message = require('./models/message');
+
 const { validateToken } = require('./services/auth');
 //-----------------------------------------------//
 
@@ -124,6 +128,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+//====================================================//
 app.use(express.json());
 app.use ('/user',userRoute);
 app.use('/auth',authRoute);
@@ -131,4 +136,6 @@ app.use('/profile',imgroute);
 app.use('/blog',blogroute);
 app.use('/permissions',permissionRoute);
 app.use('/follow',FollowRoute);
+app.use('/message',messageroute)
+//===============================================//
 server.listen(PORT,()=>console.log(`server is started on port ${PORT}`));
