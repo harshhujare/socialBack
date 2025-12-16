@@ -44,6 +44,10 @@ const userSchema = new Schema(
       type: Date,
       default: null,
     },
+    authType:{
+      type:String,
+      default:"local",
+    }
   },
   { timestamps: true }
 );

@@ -3,6 +3,7 @@ const Follow = require("../models/followers");
 const { getFileUrl } = require("../config/multerconfig");
 const cloudinary = require("cloudinary").v2;
 const bcrypt = require("bcrypt");
+const { Oauth2Client } = require("google-auth-library");
 const { CreateTokenForUser, validateToken } = require("../services/auth");
 const multer = require("multer");
 const fs = require("fs");
@@ -90,14 +91,14 @@ const handelLogin = async (req, res) => {
         role: fuser.role,
         isActive: fuser.isActive,
         createdAt: fuser.createdAt,
-        updatedAt: fuser.updatedAt
+        updatedAt: fuser.updatedAt,
       };
-      
+
       res.cookie("token", token, cookieOptions).status(200).json({
         message: "login successful",
         success: true,
         token: token, // Also send token in response for frontend storage
-        user: userData // Include user data in response
+        user: userData, // Include user data in response
       });
     } catch (tokenError) {
       console.error("Token creation failed:", tokenError);
@@ -183,9 +184,9 @@ const handelgetuser = async (req, res) => {
         .json({ sucess: false, error: "faild to get user" });
     }
     // normalize image path for client
-   
+
     // Check if the user is following the requested user
-   
+
     const followDoc = await Follow.exists({
       follower: req.user._id,
       following: req.params.userid,
@@ -193,15 +194,19 @@ const handelgetuser = async (req, res) => {
     const isFollowing = !!followDoc;
 
     // Get followers and following counts
-    const followersCount = await Follow.countDocuments({ following: req.params.userid });
-    const followingCount = await Follow.countDocuments({ follower: req.params.userid });
-   
-    res.status(200).json({ 
-      user: result, 
-      sucess: true, 
+    const followersCount = await Follow.countDocuments({
+      following: req.params.userid,
+    });
+    const followingCount = await Follow.countDocuments({
+      follower: req.params.userid,
+    });
+
+    res.status(200).json({
+      user: result,
+      sucess: true,
       isFollowing,
       followersCount,
-      followingCount
+      followingCount,
     });
   } catch (err) {
     console.error("Get user failed:", err);
@@ -211,6 +216,11 @@ const handelgetuser = async (req, res) => {
 // List users (basic directory)
 const handellistusers = async (req, res) => {
   try {
+    console.log("query", req.query);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const { q } = req.query;
     const query = q
       ? {
@@ -221,16 +231,30 @@ const handellistusers = async (req, res) => {
         }
       : {};
 
+    const totalUsers = await user.countDocuments(query);
+    const totalPages = Math.ceil(totalUsers / limit);
+
     const users = await user
       .find(query)
-      .select("fullname email profileImgUrl role isActive createdAt updatedAt");
+      .select("fullname email profileImgUrl role isActive createdAt updatedAt")
+      .skip(skip)
+      .limit(limit);
 
     const normalized = users.map((u) => ({
       ...u.toObject(),
       profileImgUrl: toWebPath(u.profileImgUrl),
     }));
 
-    return res.status(200).json({ success: true, users: normalized });
+    return res.status(200).json({
+      success: true,
+      users: normalized,
+      pagination: {
+        totalUsers,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
   } catch (err) {
     console.error("Failed to list users", err);
     return res
@@ -239,7 +263,6 @@ const handellistusers = async (req, res) => {
   }
 };
 const handelupload = async (req, res) => {
-
   const id = req.params.userid;
   const uploadedFsPath = req.file?.path;
 
@@ -252,38 +275,37 @@ const handelupload = async (req, res) => {
     if (!nuser) return res.status(404).json({ error: "User not found" });
 
     // Build web path (/public/...) for client consumption
-    const webPath =  getFileUrl(req, req.file, req.file.fieldname);
+    const webPath = getFileUrl(req, req.file, req.file.fieldname);
 
     // Delete old image if present and not default
     if (
-  nuser.profileImgUrl &&
-  nuser.profileImgUrl !== "/public/uploads/profile/image.png"
-) {
-  const oldWebPath = nuser.profileImgUrl;
+      nuser.profileImgUrl &&
+      nuser.profileImgUrl !== "/public/uploads/profile/image.png"
+    ) {
+      const oldWebPath = nuser.profileImgUrl;
 
-  let oldAbsPath;
-   if (process.env.NODE_ENV === "production") {
-      // Extract public_id from Cloudinary URL
-      const urlParts = oldWebPath.split("/");
-      const filename = urlParts[urlParts.length - 1]; // e.g. abc123.png
-      const folder = urlParts[urlParts.length - 2];   // e.g. profile
-      const publicId = `${folder}/${filename.split(".")[0]}`;
+      let oldAbsPath;
+      if (process.env.NODE_ENV === "production") {
+        // Extract public_id from Cloudinary URL
+        const urlParts = oldWebPath.split("/");
+        const filename = urlParts[urlParts.length - 1]; // e.g. abc123.png
+        const folder = urlParts[urlParts.length - 2]; // e.g. profile
+        const publicId = `${folder}/${filename.split(".")[0]}`;
 
-      const result = await cloudinary.uploader.destroy(publicId);
-      console.log("Cloudinary delete result:", result);
-    } else {
-      // Local delete
-      const urlPath = new URL(oldWebPath).pathname; // /public/uploads/profile/abc123.png
-      const absPath = path.join(process.cwd(), urlPath.replace(/^\//, ""));
+        const result = await cloudinary.uploader.destroy(publicId);
+        console.log("Cloudinary delete result:", result);
+      } else {
+        // Local delete
+        const urlPath = new URL(oldWebPath).pathname; // /public/uploads/profile/abc123.png
+        const absPath = path.join(process.cwd(), urlPath.replace(/^\//, ""));
 
-      fs.unlink(absPath, (err) => {
-        if (err) console.error("Local delete error:", err.message);
-        else console.log("Local image deleted:", absPath);
-      });
+        fs.unlink(absPath, (err) => {
+          if (err) console.error("Local delete error:", err.message);
+          else console.log("Local image deleted:", absPath);
+        });
+      }
     }
- 
-}
-console.log(webPath,"webpath is");
+    console.log(webPath, "webpath is");
     nuser.profileImgUrl = webPath;
     await nuser.save();
     res.status(200).json({ success: true, nuser });
@@ -328,6 +350,64 @@ const handleUpdateUserRole = async (req, res) => {
       .json({ success: false, message: "Failed to update user role" });
   }
 };
+
+const handelGoogleLogin = async (req, res) => {
+  const { idToken } = req.body;
+  const client = new Oauth2Client(process.env.GOOGLE_CLIENT_ID);
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayLoad();
+    const fuser = await user.findOne({ email: payload.email });
+    if (!fuser) {
+      return res
+        .status(401)
+        .json({ message: "Plese_signup_first", sucess: false });
+    }
+    let token;
+    try {
+      //token creation
+      token = CreateTokenForUser(fuser);
+
+      // Set cookie with proper options
+      // Prepare user data to send back (excluding sensitive fields)
+      const userData = {
+        _id: fuser._id,
+        fullname: fuser.fullname,
+        email: fuser.email,
+        profileImgUrl: toWebPath(fuser.profileImgUrl),
+        role: fuser.role,
+        isActive: fuser.isActive,
+        createdAt: fuser.createdAt,
+        updatedAt: fuser.updatedAt,
+      };
+
+      res.cookie("token", token, cookieOptions).status(200).json({
+        message: "login successful",
+        success: true,
+        token: token, // Also send token in response for frontend storage
+        user: userData, // Include user data in response
+      });
+    } catch (tokenError) {
+      console.error("Token creation failed:", tokenError);
+      return res.status(500).json({
+        message: "Authentication failed",
+        success: false,
+        error: "Token creation failed",
+      });
+    }
+  } catch (error) {
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation_failed",
+        error: error.message,
+      });
+    }
+  }
+};
 module.exports = {
   handelSignup,
   handelLogin,
@@ -337,5 +417,6 @@ module.exports = {
   handelgetuser,
   handellistusers,
   handelupload,
+  handelGoogleLogin,
   handleUpdateUserRole,
 };

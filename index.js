@@ -118,7 +118,7 @@ connectDb(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smpleBlog');
 
 const allowedOrigins = (process.env.CLIENT_URL ? process.env.CLIENT_URL : 'http://localhost:5173')
   .split(',')
-  .map(s => s.trim()) 
+  .map(s => s.trim())
   .filter(Boolean);
 
 app.use(cors({
@@ -132,7 +132,7 @@ app.use(cors({
 app.use(express.json());
 app.use ('/user',userRoute);
 app.use('/auth',authRoute);
-app.use('/profile',imgroute); 
+app.use('/profile',imgroute);
 app.use('/blog',blogroute);
 app.use('/permissions',permissionRoute);
 app.use('/follow',FollowRoute);
